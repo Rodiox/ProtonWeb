@@ -7,6 +7,13 @@ import type {
 } from "@proton/web-sdk";
 import { Serialize, JsonRpc, RpcInterfaces } from "@proton/js";
 
+import { formatPrice } from '../utils';
+import {
+  TOKEN_SYMBOL,
+  TOKEN_CONTRACT,
+  EMPTY_BALANCE,
+} from '../utils/constants';
+
 export let link: ProtonWebLink | Link | undefined;
 export let session: LinkSession | undefined;
 
@@ -14,8 +21,11 @@ const REQUEST_ACCOUNT = "taskly";
 const CHAIN_ID =
   "384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0";
 const ENDPOINTS = ["https://proton.greymass.com"];
+const BLOCK_EXPLORER="https://proton.bloks.io/block/";
+const NFT_ENDPOINTS = ["https://proton.api.atomicassets.io"];
 
 const rpc = new JsonRpc(ENDPOINTS);
+const rpcnft = new JsonRpc(NFT_ENDPOINTS);
 
 export const createLink = async ({
   restoreSession = false
@@ -140,6 +150,30 @@ export async function getProtonAvatar(
 ): Promise<RpcInterfaces.UserInfo | undefined> {
   try {
     const result = await rpc.get_table_rows({
+      code: "eosio.proton",
+      scope: "eosio.proton",
+      table: "usersinfo",
+      key_type: "i64",
+      lower_bound: account,
+      index_position: 1,
+      limit: 1
+    });
+
+    if (result.rows.length > 0 && result.rows[0].acc === account) {
+      return result.rows[0];
+    }
+  } catch (e) {
+    console.error("getProtonAvatar error", e);
+  }
+
+  return undefined;
+}
+
+export async function getNFTList(
+  account: string
+): Promise<RpcInterfaces.UserInfo | undefined> {
+  try {
+    const result = await rpcnft.get_table_rows({
       code: "eosio.proton",
       scope: "eosio.proton",
       table: "usersinfo",
